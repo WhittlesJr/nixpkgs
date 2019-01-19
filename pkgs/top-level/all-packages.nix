@@ -13609,6 +13609,8 @@ in
 
   home-assistant-cli = callPackage ../servers/home-assistant/cli.nix { };
 
+  hass-custom-alarm = callPackage ../servers/home-assistant/custom-alarm.nix {};
+
   hydron = callPackage ../servers/hydron { };
 
   ircdHybrid = callPackage ../servers/irc/ircd-hybrid { };
