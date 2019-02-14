@@ -253,6 +253,7 @@
   ./services/desktops/telepathy.nix
   ./services/desktops/zeitgeist.nix
   ./services/development/bloop.nix
+  ./services/development/dokku.nix
   ./services/development/hoogle.nix
   ./services/development/jupyter/default.nix
   ./services/editors/emacs.nix

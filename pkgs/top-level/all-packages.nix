@@ -1181,6 +1181,8 @@ with pkgs;
 
   deisctl = callPackage ../development/tools/deisctl {};
 
+  workflow-cli = callPackage ../development/tools/deis/workflow-cli.nix {};
+
   deja-dup = callPackage ../applications/backup/deja-dup { };
 
   devmem2 = callPackage ../os-specific/linux/devmem2 { };
@@ -1225,6 +1227,8 @@ with pkgs;
   dlx = callPackage ../misc/emulators/dlx { };
 
   doitlive = callPackage ../tools/misc/doitlive { };
+
+  dokku = callPackage ../development/tools/dokku {};
 
   dosage = callPackage ../applications/graphics/dosage {
     pythonPackages = python3Packages;
@@ -1350,6 +1354,8 @@ with pkgs;
 
   glide = callPackage ../development/tools/glide { };
 
+  gliderlabs-sigil = callPackage ../development/tools/gliderlabs-sigil { };
+
   globalarrays = callPackage ../development/libraries/globalarrays { };
 
   glock = callPackage ../development/tools/glock { };
@@ -1385,6 +1391,8 @@ with pkgs;
   heatseeker = callPackage ../tools/misc/heatseeker { };
 
   hebcal = callPackage ../tools/misc/hebcal {};
+
+  herokuish = callPackage ../development/tools/herokuish { };
 
   hexio = callPackage ../development/tools/hexio { };
 
@@ -1490,11 +1498,15 @@ with pkgs;
 
   playerctl = callPackage ../tools/audio/playerctl { };
 
+  procfile-util = callPackage ../development/tools/procfile-util { };
+
   ps_mem = callPackage ../tools/system/ps_mem { };
 
   psstop = callPackage ../tools/system/psstop { };
 
   parallel-rust = callPackage ../tools/misc/parallel-rust { };
+
+  plugn = callPackage ../development/tools/plugn { };
 
   scour = callPackage ../tools/graphics/scour { };
 
@@ -1503,6 +1515,8 @@ with pkgs;
   simg2img = callPackage ../tools/filesystems/simg2img { };
 
   socklog = callPackage ../tools/system/socklog { };
+
+  sshcommand = callPackage ../development/tools/sshcommand { };
 
   staccato = callPackage ../tools/text/staccato { };
 
