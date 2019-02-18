@@ -17,6 +17,9 @@ in {
       name = "dokku";
       group = "dokku";
       home = "/home/dokku";
+      extraGroups = [ "docker" ];
+      createHome = true;
+      useDefaultShell = true;
     };
     users.groups.dokku = {
       name = "dokku";
