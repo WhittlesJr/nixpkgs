@@ -27,6 +27,7 @@ buildGoPackage rec {
     coreutils
     plugn
     sshcommand
+    libuuid
   ];
 
   goDeps = ./deps.nix;
