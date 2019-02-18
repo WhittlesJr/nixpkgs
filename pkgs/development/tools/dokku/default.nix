@@ -38,8 +38,17 @@ buildGoPackage rec {
     # Move plugins to lib path
     mkdir -p $core_plugins_src
     cp -r $NIX_BUILD_TOP/go/src/${goPackagePath}/plugins/* $core_plugins_src
+    # Apply plugin patches
+    substituteInPlace $dir/plugins/common/functions \
+      --replace /usr/bin/tty ${pkgs.coreutils}/bin/tty
+    substituteInPlace $dir/plugins/00_dokku-standard/subcommands/version \
+      --replace \$DOKKU_ROOT $bin/lib
 
     # Install script
+    # Add version to lib path
+    echo $rev > "$bin/lib/VERSION"
+
+    # Install dokku script
     mkdir -p $bin/bin
     install -Dm755 $src/dokku $bin/bin/dokku
     patchShebangs $bin/bin/dokku
@@ -58,17 +67,6 @@ buildGoPackage rec {
         pkgs.sshcommand
       ]}
 
-    substituteInPlace $core_plugins_src/common/functions \
-      --replace /usr/bin/tty ${pkgs.coreutils}/bin/tty
-
-    wrapProgram $core_plugins_src/common/functions \
-      --set PATH ${lib.makeBinPath [
-        pkgs.plugn
-        pkgs.docker
-      ]}
-
-    # Add version to lib path
-    echo $pkgver > "$bin/lib/VERSION"
   '';
 
   meta = with stdenv.lib; {
