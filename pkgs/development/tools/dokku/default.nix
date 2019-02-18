@@ -1,4 +1,4 @@
-{ lib, pkgs, stdenv, makeWrapper, buildGoPackage, fetchFromGitHub }:
+{ lib, pkgs, stdenv, makeWrapper, buildGoPackage, fetchFromGitHub, bashInteractive }:
 
 buildGoPackage rec {
   name = "dokku-${version}";
@@ -32,43 +32,41 @@ buildGoPackage rec {
 
   goDeps = ./deps.nix;
 
+  patches = [ ./drv-paths.patch ];
 
   postInstall = ''
     dir=$NIX_BUILD_TOP/go/src/${goPackagePath}/
 
-    # Apply plugin patches
-    substituteInPlace $dir/plugins/common/functions \
-      --replace /usr/bin/tty ${pkgs.coreutils}/bin/tty \
-      --replace \$DOKKU_ROOT/HOSTNAME $bin/lib/HOSTNAME
+    # Set up plugin directories
+    core_plugins=$bin/lib/core-plugins
+    plugins=$bin/lib/plugins
 
-    substituteInPlace $dir/plugins/00_dokku-standard/subcommands/version \
-      --replace \$DOKKU_ROOT $bin/lib
+  	mkdir -p {$core_plugins,$plugins}/enabled
+  	mkdir -p {$core_plugins,$plugins}/available
+  	touch    {$core_plugins,$plugins}/config.toml
 
-    substituteInPlace $dir/plugins/nginx-vhosts/functions \
-      --replace \$DOKKU_ROOT/HOSTNAME $bin/lib/HOSTNAME
+    # Copy and enable all core plugins
+    cp -r $dir/plugins/* $core_plugins/available
+    find $core_plugins/available -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | while read -r plugin; do
+      ln -s $core_plugins/available/$plugin $core_plugins/enabled/$plugin
+      ln -s $core_plugins/available/$plugin $plugins/available/$plugin
+      ln -s $core_plugins/enabled/$plugin   $plugins/enabled/$plugin
+    done
 
-    substituteInPlace $dir/plugins/domains/functions \
-      --replace \$DOKKU_ROOT/HOSTNAME $bin/lib/HOSTNAME
+    # Add version file
+    echo $rev > "$bin/VERSION"
 
-    substituteInPlace $dir/plugins/00_dokku-standard/install \
-      --replace \$DOKKU_ROOT/HOSTNAME $bin/lib/HOSTNAME
-
-    # Copy core plugins
-    mkdir -p $bin/lib/core-plugins/available
-    cp -r $dir/plugins/* $bin/lib/core-plugins/available
-
-    # Add version to lib path
-    echo $rev > "$bin/lib/VERSION"
-
-    # Add hostname to lib path
-    ${pkgs.hostname}/bin/hostname -f > "$bin/lib/HOSTNAME"
+    # Add hostname file
+    ${pkgs.hostname}/bin/hostname -f > "$bin/HOSTNAME"
+    ${pkgs.hostname}/bin/hostname -f > "$bin/VHOST"
 
     # Install dokku script
     mkdir -p $bin/bin
     install -Dm755 $dir/dokku $bin/bin/dokku
     patchShebangs $bin/bin/dokku
     wrapProgram $bin/bin/dokku \
-      --set PLUGIN_CORE_AVAILABLE_PATH $core_plugins_src \
+      --set DOKKU_LIB_PATH $bin/lib \
+      --set DOKKU_DRV $bin \
       --set PATH ${lib.makeBinPath [
         pkgs.dnsutils
         pkgs.plugn
@@ -86,10 +84,11 @@ buildGoPackage rec {
         pkgs.gnused
         pkgs.gawk
         pkgs.libuuid
+        pkgs.which
+        pkgs.su
         bashInteractive
         "$bin"
       ]}
-
   '';
 
   meta = with stdenv.lib; {
