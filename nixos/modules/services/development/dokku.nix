@@ -51,23 +51,18 @@ in {
         chown dokku:dokku $data $data/storage
 
         echo "Setting up plugin directories"
-        mkdir -p $core_plugins/available
-        mkdir -p $core_plugins/enabled
-        touch $core_plugins/config.toml
-
-        mkdir -p $plugins/available
-        mkdir -p $plugins/enabled
-        touch $plugins/config.toml
+        PLUGIN_PATH=$core_plugins ${pkgs.plugn}/bin/plugn init
+        PLUGIN_PATH=$plugins ${pkgs.plugn}/bin/plugn init
 
         echo "Enabling all core plugins"
         find $core_plugins_src -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | while read -r plugin; do
           if [ ! -d $plugins/available/$plugin ]; then
+            ln -s $core_plugins_src/$plugin $core_plugins/available/$plugin
             ln -s $core_plugins_src/$plugin $plugins/available/$plugin
             PLUGIN_PATH=$core_plugins ${pkgs.plugn}/bin/plugn enable $plugin
             PLUGIN_PATH=$plugins ${pkgs.plugn}/bin/plugn enable $plugin
           fi
         done
-        find -L $DOKKU_LIB_ROOT -type l -delete
         chown dokku:dokku -R $plugins $core_plugins
 
         echo "Ensure proper sshcommand path"
