@@ -33,29 +33,26 @@ buildGoPackage rec {
 
 
   postInstall = ''
-    core_plugins_src=$bin/lib/core-plugins/available
+    dir=$NIX_BUILD_TOP/go/src/${goPackagePath}/
 
-    # Move plugins to lib path
-    mkdir -p $core_plugins_src
-    cp -r $NIX_BUILD_TOP/go/src/${goPackagePath}/plugins/* $core_plugins_src
     # Apply plugin patches
     substituteInPlace $dir/plugins/common/functions \
       --replace /usr/bin/tty ${pkgs.coreutils}/bin/tty
     substituteInPlace $dir/plugins/00_dokku-standard/subcommands/version \
       --replace \$DOKKU_ROOT $bin/lib
 
-    # Install script
     # Add version to lib path
     echo $rev > "$bin/lib/VERSION"
 
     # Install dokku script
     mkdir -p $bin/bin
-    install -Dm755 $src/dokku $bin/bin/dokku
+    install -Dm755 $dir/dokku $bin/bin/dokku
     patchShebangs $bin/bin/dokku
     wrapProgram $bin/bin/dokku \
       --set PLUGIN_CORE_AVAILABLE_PATH $core_plugins_src \
       --set PATH ${lib.makeBinPath [
         pkgs.dnsutils
+        pkgs.plugn
         pkgs.docker
         pkgs.gliderlabs-sigil
         pkgs.nettools
@@ -65,6 +62,13 @@ buildGoPackage rec {
         pkgs.coreutils
         pkgs.plugn
         pkgs.sshcommand
+        pkgs.sudo
+        pkgs.gnugrep
+        pkgs.gnused
+        pkgs.gawk
+        pkgs.libuuid
+        bashInteractive
+        "$bin"
       ]}
 
   '';
