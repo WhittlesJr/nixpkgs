@@ -31,9 +31,6 @@ buildGoPackage rec {
 
   goDeps = ./deps.nix;
 
-  preBuild = ''
-    export GOPATH=$GOPATH:$NIX_BUILD_TOP/go/src/${goPackagePath}/Godeps/_workspace
-  '';
 
   postInstall = ''
     core_plugins_src=$bin/lib/core-plugins/available
