@@ -81,13 +81,6 @@ in {
 
         echo "Install all core plugins"
         ${pkgs.dokku}/bin/dokku plugin:install --core
-
-        echo "Update version file"
-        rm -f "$DOKKU_ROOT/VERSION"
-        cp "${pkgs.dokku}/lib/VERSION" "$DOKKU_ROOT/VERSION"
-
-        echo "Update hostname"
-        ${pkgs.hostname}/bin/hostname -f > "$DOKKU_ROOT/HOSTNAME"
       '';
 
       serviceConfig = {

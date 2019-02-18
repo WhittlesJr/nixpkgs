@@ -38,12 +38,30 @@ buildGoPackage rec {
 
     # Apply plugin patches
     substituteInPlace $dir/plugins/common/functions \
-      --replace /usr/bin/tty ${pkgs.coreutils}/bin/tty
+      --replace /usr/bin/tty ${pkgs.coreutils}/bin/tty \
+      --replace \$DOKKU_ROOT/HOSTNAME $bin/lib/HOSTNAME
+
     substituteInPlace $dir/plugins/00_dokku-standard/subcommands/version \
       --replace \$DOKKU_ROOT $bin/lib
 
+    substituteInPlace $dir/plugins/nginx-vhosts/functions \
+      --replace \$DOKKU_ROOT/HOSTNAME $bin/lib/HOSTNAME
+
+    substituteInPlace $dir/plugins/domains/functions \
+      --replace \$DOKKU_ROOT/HOSTNAME $bin/lib/HOSTNAME
+
+    substituteInPlace $dir/plugins/00_dokku-standard/install \
+      --replace \$DOKKU_ROOT/HOSTNAME $bin/lib/HOSTNAME
+
+    # Copy core plugins
+    mkdir -p $bin/lib/core-plugins/available
+    cp -r $dir/plugins/* $bin/lib/core-plugins/available
+
     # Add version to lib path
     echo $rev > "$bin/lib/VERSION"
+
+    # Add hostname to lib path
+    ${pkgs.hostname}/bin/hostname -f > "$bin/lib/HOSTNAME"
 
     # Install dokku script
     mkdir -p $bin/bin
