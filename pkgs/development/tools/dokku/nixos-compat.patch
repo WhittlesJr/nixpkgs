@@ -1,0 +1,361 @@
+diff --git a/plugins/00_dokku-standard/install b/plugins/00_dokku-standard/install
+deleted file mode 100755
+index 7ca97566..00000000
+--- a/plugins/00_dokku-standard/install
++++ /dev/null
+@@ -1,69 +0,0 @@
+-#!/usr/bin/env bash
+-set -eo pipefail
+-[[ $DOKKU_TRACE ]] && set -x
+-
+-if [[ ! -f "$DOKKU_ROOT/HOSTNAME" ]]; then
+-  hostname -f >"$DOKKU_ROOT/HOSTNAME"
+-fi
+-
+-if [[ ! -f "$DOKKU_ROOT/VHOST" ]]; then
+-  [[ $(dig +short "$(<"$DOKKU_ROOT/HOSTNAME")") ]] && cp "$DOKKU_ROOT/HOSTNAME" "$DOKKU_ROOT/VHOST"
+-fi
+-
+-dokku_path="$(which dokku)"
+-
+-# temporary hack for https://github.com/dokku/dokku/issues/82
+-# redeploys all apps after a reboot
+-if [[ $(/sbin/init --version 2>/dev/null) =~ upstart ]]; then
+-  cat <<EOF >/etc/init/dokku-redeploy.conf
+-description "Dokku app redeploy service"
+-
+-start on filesystem and started docker
+-
+-script
+-  sleep 2 # give docker some time
+-  sudo -i -u dokku $dokku_path ps:restore
+-end script
+-EOF
+-fi
+-
+-if [[ $(systemctl 2>/dev/null) =~ -\.mount ]]; then
+-  cat <<EOF >/etc/systemd/system/dokku-redeploy.service
+-[Unit]
+-Description=Dokku app redeploy service
+-Requires=docker.service
+-After=docker.service
+-
+-[Service]
+-Type=simple
+-User=dokku
+-ExecStart=$dokku_path ps:restore
+-
+-[Install]
+-WantedBy=docker.service
+-EOF
+-  if command -v systemctl &>/dev/null; then
+-    systemctl --quiet reenable dokku-redeploy
+-  fi
+-fi
+-
+-mkdir -p /etc/update-motd.d
+-cat <<EOF >/etc/update-motd.d/99-dokku
+-#!/bin/sh
+-
+-if [ ! -f "/home/dokku/HOSTNAME" ]; then
+-  echo "\nTo avoid cli-based dokku configuration, use the web installer"
+-  echo "Debian-based installs should have this running and available"
+-  echo "on port 80. You can also install it via the following commands:"
+-  echo ""
+-  echo "  cd /root/dokku"
+-  echo "  sudo make dokku-installer\n"
+-fi
+-EOF
+-chmod +x /etc/update-motd.d/99-dokku
+-
+-chown dokku:dokku "$DOKKU_ROOT/HOSTNAME"
+-
+-if [[ -f "$DOKKU_ROOT/VHOST" ]]; then
+-  chown dokku:dokku "$DOKKU_ROOT/VHOST"
+-fi
+diff --git a/plugins/00_dokku-standard/subcommands/version b/plugins/00_dokku-standard/subcommands/version
+index 046d9709..a2b024e3 100755
+--- a/plugins/00_dokku-standard/subcommands/version
++++ b/plugins/00_dokku-standard/subcommands/version
+@@ -6,7 +6,7 @@ source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+ dokku_version_cmd() {
+   declare desc="prints dokku version"
+   local cmd="version"
+-  cat "$DOKKU_ROOT/VERSION" || dokku_log_fail "Unable to determine dokku's version"
++  cat "$DOKKU_DRV/VERSION" || dokku_log_fail "Unable to determine dokku's version"
+ }
+ 
+ dokku_version_cmd "$@"
+diff --git a/plugins/20_events/install b/plugins/20_events/install
+deleted file mode 100755
+index 7146f27c..00000000
+--- a/plugins/20_events/install
++++ /dev/null
+@@ -1,76 +0,0 @@
+-#!/usr/bin/env bash
+-set -eo pipefail
+-[[ $DOKKU_TRACE ]] && set -x
+-source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+-
+-DOKKU_RSYSLOG_FILTER_DIR=/etc/rsyslog.d
+-DOKKU_RSYSLOG_FILTER=$DOKKU_RSYSLOG_FILTER_DIR/99-dokku.conf
+-DOKKU_LOGROTATE_FILE=/etc/logrotate.d/dokku
+-
+-flag_rsyslog_needs_restart=n
+-
+-# This can be done unconditionally as mkdir -p
+-# exits gracefully if the path already exists
+-# shellcheck disable=SC2174
+-mkdir -m 775 -p "$DOKKU_LOGS_DIR"
+-case "$DOKKU_DISTRO" in
+-  arch | debian | centos | rhel)
+-    chgrp dokku "$DOKKU_LOGS_DIR"
+-    ;;
+-  *)
+-    chown syslog:dokku "$DOKKU_LOGS_DIR"
+-    ;;
+-esac
+-
+-if [[ ! -f "$DOKKU_EVENTS_LOGFILE" ]]; then
+-  touch "$DOKKU_EVENTS_LOGFILE"
+-  case "$DOKKU_DISTRO" in
+-    arch | debian | centos | rhel)
+-      chgrp dokku "$DOKKU_EVENTS_LOGFILE"
+-      ;;
+-    *)
+-      # chown syslog:root might not work on SUSE
+-      chown syslog:dokku "$DOKKU_EVENTS_LOGFILE"
+-      ;;
+-  esac
+-  chmod 664 "$DOKKU_EVENTS_LOGFILE"
+-fi
+-
+-if [[ -d "$DOKKU_RSYSLOG_FILTER_DIR" && ! -f "$DOKKU_RSYSLOG_FILTER" ]]; then
+-  cat >"$DOKKU_RSYSLOG_FILTER" <<EOF
+-:syslogtag, contains, "dokku" $DOKKU_EVENTS_LOGFILE
+-EOF
+-  flag_rsyslog_needs_restart=y
+-fi
+-
+-if [[ ! -f "$DOKKU_LOGROTATE_FILE" ]]; then
+-  cat >"$DOKKU_LOGROTATE_FILE" <<EOF
+-$DOKKU_LOGS_DIR/*.log {
+-        daily
+-        rotate 7
+-        missingok
+-        notifempty
+-        su syslog dokku
+-        compress
+-        delaycompress
+-        postrotate
+-                reload rsyslog >/dev/null 2>&1 || true
+-        endscript
+-        create 664 syslog dokku
+-}
+-EOF
+-
+-  if [[ "$DOKKU_DISTRO" == "debian" ]]; then
+-    sed -i 's/ syslog dokku$/ root dokku/g' $DOKKU_LOGROTATE_FILE
+-  fi
+-
+-  flag_rsyslog_needs_restart=y
+-fi
+-
+-if [[ -f "$DOKKU_RSYSLOG_FILTER" && "$flag_rsyslog_needs_restart" == "y" ]]; then
+-  service rsyslog restart
+-fi
+-
+-[[ ! "$DOKKU_EVENTS" ]] || dokku_log_plugn_trigger_call "$(basename "$0")" "$@"
+-
+-exit 0
+diff --git a/plugins/common/functions b/plugins/common/functions
+index 9478c2d7..56649c83 100755
+--- a/plugins/common/functions
++++ b/plugins/common/functions
+@@ -4,7 +4,7 @@ set -eo pipefail
+ 
+ has_tty() {
+   declare desc="return 0 if we have a tty"
+-  if [[ "$(/usr/bin/tty || true)" == "not a tty" ]]; then
++  if [[ "$(tty || true)" == "not a tty" ]]; then
+     return 1
+   else
+     return 0
+@@ -13,6 +13,7 @@ has_tty() {
+ 
+ dokku_apps() {
+   declare desc="prints list of all local apps"
++  echo "ROOT" $DOKKU_ROOT
+   local INSTALLED_APPS=$(find "$DOKKU_ROOT" -follow -maxdepth 1 -mindepth 1 -type d ! -name 'tls' ! -name '.*' -printf "%f\n" 2>/dev/null | sort) || (dokku_log_fail "You haven't deployed any applications yet")
+   [[ $INSTALLED_APPS ]] && echo "$INSTALLED_APPS"
+ }
+diff --git a/plugins/nginx-vhosts/install b/plugins/nginx-vhosts/install
+deleted file mode 100755
+index 26bfcfe4..00000000
+--- a/plugins/nginx-vhosts/install
++++ /dev/null
+@@ -1,116 +0,0 @@
+-#!/usr/bin/env bash
+-set -eo pipefail
+-[[ $DOKKU_TRACE ]] && set -x
+-source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+-source "$PLUGIN_AVAILABLE_PATH/config/functions"
+-
+-case "$DOKKU_DISTRO" in
+-  debian)
+-    echo "%dokku ALL=(ALL) NOPASSWD:/usr/sbin/invoke-rc.d nginx reload, /usr/sbin/nginx -t, /usr/sbin/nginx -t -c *" >/etc/sudoers.d/dokku-nginx
+-    ;;
+-
+-  ubuntu)
+-    echo "%dokku ALL=(ALL) NOPASSWD:/etc/init.d/nginx reload, /usr/sbin/nginx -t, /usr/sbin/nginx -t -c *" >/etc/sudoers.d/dokku-nginx
+-    ;;
+-
+-  opensuse)
+-    echo "%dokku ALL=(ALL) NOPASSWD:/sbin/service nginx reload, /usr/sbin/nginx -t, /usr/sbin/nginx -t -c *" >/etc/sudoers.d/dokku-nginx
+-    ;;
+-
+-  arch)
+-    echo "%dokku ALL=(ALL) NOPASSWD:/usr/bin/systemctl reload nginx, /usr/sbin/nginx -t, /usr/sbin/nginx -t -c *" >/etc/sudoers.d/dokku-nginx
+-    ;;
+-
+-  centos | rhel)
+-    echo "%dokku ALL=(ALL) NOPASSWD:/usr/bin/systemctl reload nginx, /usr/sbin/nginx -t, /usr/sbin/nginx -t -c *" >/etc/sudoers.d/dokku-nginx
+-    echo "Defaults:dokku !requiretty" >>/etc/sudoers.d/dokku-nginx
+-    ;;
+-esac
+-
+-chmod 0440 /etc/sudoers.d/dokku-nginx
+-
+-# if dhparam.pem has not been created, create it the first time
+-if [[ ! -f /etc/nginx/dhparam.pem ]]; then
+-  openssl dhparam -out /etc/nginx/dhparam.pem 2048
+-fi
+-
+-mkdir -p /etc/nginx/conf.d
+-chown root:root /etc/nginx/dhparam.pem
+-chown root:root /etc/nginx/conf.d
+-cat <<EOF >/etc/nginx/conf.d/dokku.conf
+-include $DOKKU_ROOT/*/nginx.conf;
+-
+-server_tokens off;
+-
+-# Settings from https://mozilla.github.io/server-side-tls/ssl-config-generator/
+-ssl_session_cache shared:SSL:20m;
+-ssl_session_timeout 1d;
+-ssl_session_tickets on;
+-
+-ssl_dhparam /etc/nginx/dhparam.pem;
+-ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384;
+-
+-EOF
+-
+-# allow users to override their server_names_hash_bucket_size
+-if [[ ! -f /etc/nginx/conf.d/server_names_hash_bucket_size.conf ]]; then
+-  echo 'server_names_hash_bucket_size 512;' >|/etc/nginx/conf.d/server_names_hash_bucket_size.conf
+-fi
+-
+-# revert dokku group changes
+-gpasswd -a dokku adm
+-chgrp --quiet -R adm /var/log/nginx
+-gpasswd -M "$(egrep ^dokku: /etc/group | awk -F ":" '{ print $4 }')" dokku
+-[[ -f /etc/logrotate.d/nginx ]] && sed -i -e 's/create 0640 www-data dokku/create 0640 www-data adm/g' /etc/logrotate.d/nginx
+-
+-# Create nginx error templates
+-mkdir -p "${DOKKU_LIB_ROOT}/data/nginx-vhosts/dokku-errors"
+-cp "${PLUGIN_CORE_AVAILABLE_PATH}/nginx-vhosts/templates/400-error.html" "${DOKKU_LIB_ROOT}/data/nginx-vhosts/dokku-errors/400-error.html"
+-cp "${PLUGIN_CORE_AVAILABLE_PATH}/nginx-vhosts/templates/404-error.html" "${DOKKU_LIB_ROOT}/data/nginx-vhosts/dokku-errors/404-error.html"
+-cp "${PLUGIN_CORE_AVAILABLE_PATH}/nginx-vhosts/templates/500-error.html" "${DOKKU_LIB_ROOT}/data/nginx-vhosts/dokku-errors/500-error.html"
+-
+-# patch broken nginx 1.8.0 logrotate
+-[[ -f /etc/logrotate.d/nginx ]] && sed -i -e 's/invoke-rc.d/service/g' /etc/logrotate.d/nginx
+-
+-# @TODO: Remove this after a few versions
+-for app in $(dokku_apps); do
+-  nginx_port="$(config_get "$app" DOKKU_NGINX_PORT || true)"
+-  nginx_ssl_port="$(config_get "$app" DOKKU_NGINX_SSL_PORT || true)"
+-  if [[ -n "$nginx_port" ]] || [[ -n "$nginx_ssl_port" ]]; then
+-    dokku_log_info1 "Migrating DOKKU_NGINX env variables. The following variables will be migrated"
+-    dokku_log_info2 "DOKKU_NGINX_PORT -> DOKKU_PROXY_PORT"
+-    dokku_log_info2 "DOKKU_NGINX_SSL_PORT -> DOKKU_PROXY_SSL_PORT"
+-  fi
+-  if [[ -n "$nginx_port" ]]; then
+-    dokku_log_info1 "Migrating DOKKU_NGINX_PORT to DOKKU_PROXY_PORT for $app"
+-    config_set --no-restart "$app" DOKKU_PROXY_PORT="$nginx_port"
+-    config_unset --no-restart "$app" DOKKU_NGINX_PORT
+-  fi
+-  if [[ -n "$nginx_ssl_port" ]]; then
+-    dokku_log_info1 "Migrating DOKKU_NGINX_SSL_PORT to DOKKU_PROXY_SSL_PORT for $app"
+-    config_set --no-restart "$app" DOKKU_PROXY_SSL_PORT="$nginx_ssl_port"
+-    config_unset --no-restart "$app" DOKKU_NGINX_SSL_PORT
+-  fi
+-done
+-
+-case "$DOKKU_DISTRO" in
+-  debian)
+-    NGINX_INIT="/usr/sbin/invoke-rc.d"
+-    "$NGINX_INIT" nginx start || "$NGINX_INIT" nginx reload
+-    ;;
+-
+-  ubuntu)
+-    NGINX_INIT="/etc/init.d/nginx"
+-    "$NGINX_INIT" start || "$NGINX_INIT" reload
+-    ;;
+-
+-  opensuse)
+-    NGINX_INIT="/sbin/service"
+-    "$NGINX_INIT" nginx start || "$NGINX_INIT" nginx reload
+-    ;;
+-
+-  arch | centos | rhel)
+-    NGINX_INIT="/usr/bin/systemctl"
+-    "$NGINX_INIT" start nginx || "$NGINX_INIT" reload nginx
+-    ;;
+-esac
+diff --git a/plugins/scheduler-docker-local/install b/plugins/scheduler-docker-local/install
+index 2dfdda4a..c3b920bd 100755
+--- a/plugins/scheduler-docker-local/install
++++ b/plugins/scheduler-docker-local/install
+@@ -13,43 +13,6 @@ scheduler-docker-local-install() {
+   chown -R "${DOKKU_SYSTEM_USER}:${DOKKU_SYSTEM_GROUP}" "${DOKKU_LIB_ROOT}/data/scheduler-docker-local"
+ 
+   fn-plugin-property-setup "scheduler-docker-local"
+-
+-  DOKKU_PATH="$(which dokku)"
+-
+-  if [[ $(systemctl 2>/dev/null) =~ -\.mount ]]; then
+-    cat <<EOF >/etc/systemd/system/dokku-retire.service
+-[Unit]
+-Description=Dokku retire service
+-Requires=docker.service
+-After=docker.service
+-
+-[Service]
+-Type=oneshot
+-User=$DOKKU_SYSTEM_USER
+-ExecStart=$DOKKU_PATH ps:restore
+-
+-[Install]
+-WantedBy=docker.service
+-EOF
+-
+-    cat <<EOF >/etc/systemd/system/dokku-retire.timer
+-[Unit]
+-Description=Run dokku-retire.service every 5 minutes
+-
+-[Timer]
+-OnCalendar=*:0/5
+-EOF
+-    if command -v systemctl &>/dev/null; then
+-      systemctl --quiet reenable dokku-retire
+-    fi
+-  else
+-    cat <<EOF >/etc/cron.d/dokku-retire
+-PATH=/usr/local/bin:/usr/bin:/bin
+-SHELL=/bin/bash
+-
+-*/5 * * * * $DOKKU_SYSTEM_USER $DOKKU_PATH ps:retire >> /var/log/dokku/retire.log 2>&1
+-EOF
+-  fi
+ }
+ 
+ scheduler-docker-local-install "$@"
