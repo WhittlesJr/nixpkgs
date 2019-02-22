@@ -2673,6 +2673,8 @@ with pkgs;
 
   gandi-cli = callPackage ../tools/networking/gandi-cli { };
 
+  gandalf = callPackage ../applications/version-management/gandalf {};
+
   garmin-plugin = callPackage ../applications/misc/garmin-plugin {};
 
   garmintools = callPackage ../development/libraries/garmintools {};
@@ -22130,6 +22132,10 @@ with pkgs;
   tup = callPackage ../development/tools/build-managers/tup { };
 
   trufflehog = callPackage ../tools/security/trufflehog { };
+
+  tsuru = callPackage ../development/tools/tsuru { };
+
+  tsuru-client = callPackage ../development/tools/tsuru-client { };
 
   tvbrowser-bin = callPackage ../applications/misc/tvbrowser/bin.nix { };
 

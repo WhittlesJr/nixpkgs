@@ -1,0 +1,46 @@
+diff --git a/tsuru/installer/compose.go b/tsuru/installer/compose.go
+index 158b3b72..c931c1fa 100644
+--- a/tsuru/installer/compose.go
++++ b/tsuru/installer/compose.go
+@@ -35,15 +35,16 @@ func composeDeploy(c ServiceCluster, installConfig *InstallOpts) error {
+ 		"TSURU_API_IMAGE":      installConfig.ComponentsConfig.TsuruAPIImage,
+ 	}
+ 	config, err := resolveConfig(installConfig.ComposeFile, configs)
++	println(config)
+ 	if err != nil {
+ 		return err
+ 	}
+-	err = dm.WriterRemoteData(manager.Host, "/tmp/compose.yml", []byte(config))
++	err = dm.WriterRemoteData(manager.Host, "compose.yml", []byte(config))
+ 	if err != nil {
+ 		return fmt.Errorf("failed to write remote file: %s", err)
+ 	}
+ 	fmt.Print("Deploying compose file in cluster manager....\n")
+-	output, err := manager.Host.RunSSHCommand("sudo docker deploy -c /tmp/compose.yml tsuru")
++	output, err := manager.Host.RunSSHCommand("sudo docker deploy -c compose.yml tsuru")
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/tsuru/installer/defaultconfig/compose.yml b/tsuru/installer/defaultconfig/compose.yml
+index cba876e5..d1ead537 100644
+--- a/tsuru/installer/defaultconfig/compose.yml
++++ b/tsuru/installer/defaultconfig/compose.yml
+@@ -1,4 +1,4 @@
+-version: "3"
++version: '3'
+ 
+ services:
+   redis:
+diff --git a/tsuru/installer/defaultconfig/configs.go b/tsuru/installer/defaultconfig/configs.go
+index 3df2a244..4e4d6451 100644
+--- a/tsuru/installer/defaultconfig/configs.go
++++ b/tsuru/installer/defaultconfig/configs.go
+@@ -3,7 +3,7 @@
+ package defaultconfig
+ 
+ const (
+-	Compose = `version: "3"
++	Compose = `version: '3'
+ 
+ services:
+   redis:
