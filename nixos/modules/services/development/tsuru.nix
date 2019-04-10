@@ -4,104 +4,181 @@ with lib;
 
 let
   cfg = config.services.tsuru;
+  gandalfCfg = config.services.gandalf;
+  dockerRegCfg = config.services.dockerRegistry;
 
-  configFile = pkgs.writeText "tsuru.conf" ''
-    listen: "0.0.0.0:${cfg.listenPort}"
-    debug: ${if cfg.enableDebug then "true" else "false"}
-    host: http://${cfg.hostAddress}:${cfg.listenPort}
-    repo-manager: ${if cfg.enableGandalf then "gandalf" else "none"}
-    auth:
-        user-registration: true
-        scheme: native
-    database:
-        url: ${config.services.mongodb.bind_ip}:27017
-        name: tsurudb
-    queue:
-        mongo-url: ${config.services.mongodb.bind_ip}:27017
-        mongo-database: queuedb
-    provisioner: docker
-    docker:
-        router: hipache
-        collection: docker_containers
-        repository-namespace: tsuru
-        deploy-cmd: /var/lib/tsuru/deploy
-        bs:
-            image: tsuru/bs:v1
-            socket: /var/run/docker.sock
-        cluster:
-            storage: mongodb
-            mongo-url: ${config.services.mongodb.bind_ip}:27017
-            mongo-database: cluster
-        run-cmd:
-            bin: /var/lib/tsuru/start
-            port: "8888"
-    routers:
-        hipache:
-            type: hipache
-            domain: <your-hipache-server-ip>.xip.io
-            redis-server: <your-redis-server-with-port>
-  '';
+  tsuruDefaultConfig = {
+    auth = {
+      hash-cost = 4;
+      token-expire-days = 2;
+      user-registration = true;
+      scheme = "native";
+    };
+    database = {
+      name = "tsurudb";
+      url = "${config.services.mongodb.bind_ip}:27017";
+    };
+    debug = true;
+    docker = {
+      auto-scale = {
+        enabled = true;
+      };
+      bs = {
+        image = "tsuru/bs:v1";
+        socket = "/var/run/docker.sock";
+      };
+      cluster = {
+        mongo-database = "cluster";
+        mongo-url = "${config.services.mongodb.bind_ip}:27017";
+        storage = "mongodb";
+      };
+      collection = "docker";
+      deploy-cmd = "/var/lib/tsuru/deploy";
+      healing = {
+        heal-containers-timeout = 30;
+        active-monitoring-interval = 5;
+      };
+      #registry = "${dockerRegCfg.listenAddress}:${toString dockerRegCfg.port}";
+      repository-namespace = "tsuru";
+      router = "hipache";
+      run-cmd = {
+        bin = "/var/lib/tsuru/start";
+        port = 8888;
+      };
+    };
+    host = "http://127.0.0.1:8080";
+    listen = "0.0.0.0:8080";
+    provisioner = "docker";
+    queue = {
+      mongo-database = "queuedb";
+      mongo-url = "${config.services.mongodb.bind_ip}:27017";
+    };
+    routers = {
+      hipache = {
+        type = "hipache";
+        domain = "${config.services.planb.listenAddress}.xip.io";
+        redis-server = "${config.services.redis.bind}:${toString config.services.redis.port}";
+      };
+    };
+    use-tls = false;
+  };
+
+  tsuruGandalfConfig = {
+    repo-manager = "gandalf";
+    git = {
+      api-server = "http://${gandalfCfg.hostAddress}:${gandalfCfg.hostPort}";
+    };
+  };
+
+  tsuruManagedLocalIaaSConfig = {
+    iaas = {
+      dockermachine = {
+        name = "local";
+        driver = {
+          name = "virtualbox";
+        };
+      };
+    };
+  };
+
+  configFile = pkgs.writeText "tsuru-conf.json"
+    (builtins.toJSON
+      (if cfg.applyDefaultConfig
+       then (lib.foldl' lib.recursiveUpdate {}
+                        [tsuruDefaultConfig
+                         (if cfg.enableGandalf then tsuruGandalfConfig else {})
+                         (if cfg.simpleLocalManagedIaaS then tsuruManagedLocalIaaSConfig else {})
+                         (if cfg.config != null then cfg.config else {})])
+       else cfg.config));
+
 in {
+  meta.maintainers = with maintainers; [ WhittlesJr ];
 
   options.services.tsuru = {
     enable = mkEnableOption "Tsuru Docker-based PaaS";
 
     enableGandalf = mkEnableOption ''
-      Connect to gandalf git webserver.
-      Gandalf configuration exists under `services.gandalf`.
+      Add tsuru config that connects tsuru to your gandalf git webserver. Also sets <option>services.gandalf.enable</option> to <literal>true</literal>.
+      Additional gandalf configuration exists under <option>services.gandalf</option>, but the defaults should be acceptable for simple use-cases.
     '';
 
-    enableDebug = mkEnableOption "Enable tsuru's debug logging";
+    simpleLocalManagedIaaS = mkEnableOption ''
+      Add tsuru config that gets you up and running with local <literal>docker-machine</literal>-managed IaaS, defaultly backed by virtualbox.
+    '';
 
-    listenPort = mkOption {
-      default = "8080";
+    applyDefaultConfig = mkOption {
+      default = true;
+      type = types.bool;
       description = ''
-        The port for the `listen` HTTP server config value.
+        The provided default config emulates that given by <literal>tsuru install-create</literal>.
       '';
     };
-    hostAddress = mkOption {
-      default = "127.0.0.1";
+
+    config = mkOption {
+      default = null;
+      type = with types; nullOr attrs;
       description = ''
-        Host address for `tsurud` to run on.
+        Your <filename>tsuru.conf</filename> as a Nix attribute set.
+        Beware that setting this option will delete your previous <filename>tsuru.conf</filename>.
       '';
     };
   };
 
-  config = mkIf (cfg.enable) {
+  config = mkMerge [
+    (mkIf (cfg.enable) {
+   
+       environment.systemPackages = with pkgs; [
+         tsuru
+         tsuru-client
+       ];
+   
+       services.mongodb.enable = true;
+       services.gandalf.enable = cfg.enableGandalf;
+       services.planb.enable = true;
+       services.redis.bind = "127.0.0.1";
+       virtualisation.docker.enable = true;
+       #services.dockerRegistry.enable = true;
+   
+       systemd.services.tsuru = {
+         description = "Tsuru PaaS";
+         enable = true;
+         after = [
+           "git-daemon.service"
+           "mongodb.service"
+           "planb.service"
+           "docker.socket"
+           "docker.service"
+           #"docker-registry.service"
+         ];
+         requires = [
+           "mongodb.service"
+           "planb.service"
+           "docker.socket"
+           "docker.service"
+           #"docker-registry.service"
+         ];
+         wantedBy = [ "multi-user.target" ];
+         preStart =  ''
+           config=/var/lib/tsuru/tsuru.conf
+           rm -f $config
+           ${pkgs.remarshal}/bin/json2yaml -i ${configFile} -o $config
+           chmod 444 $config
+         '';
+   
+         serviceConfig = {
+           StateDirectory = "tsuru";
+           ExecStart = "${pkgs.tsuru}/bin/tsurud api --config /var/lib/tsuru/tsuru.conf";
+         };
+       };
+     })
 
-    environment.systemPackages = with pkgs; [
-      tsuru
-      tsuru-client
-      docker-machine
-    ];
-
-    virtualisation.virtualbox.host = {
-      enable = true;
-      addNetworkInterface = true;
-      headless = true;
-    };
-
-    virtualisation.docker.enable = true;
-
-    services.mongodb.enable = true;
-    services.redis.enable = true;
-    services.gandalf.enable = cfg.enableGandalf;
-
-    systemd.services.tsuru = {
-      description = "Tsuru PaaS";
-      enable = true;
-      after = [
-        "network.target"
-        "gandalf-webserver.service"
-        "git-daemon.service"
-        "mongodb.service"
-        "redis.service"
-      ];
-      requires = [ "gandalf-webserver.service" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        ExecStart = "${pkgs.tsuru}/bin/tsurud api --config ${configFile}";
-      };
-    };
-  };
+     (mkIf cfg.simpleLocalManagedIaaS {
+        virtualisation.virtualbox.host = {
+          enable = true;
+          addNetworkInterface = true;
+          headless = true;
+        };
+        environment.systemPackages = with pkgs; [ docker-machine ];
+     })
+  ];
 }

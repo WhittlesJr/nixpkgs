@@ -565,6 +565,7 @@
   ./services/networking/ostinato.nix
   ./services/networking/owamp.nix
   ./services/networking/pdnsd.nix
+  ./services/networking/planb.nix
   ./services/networking/polipo.nix
   ./services/networking/powerdns.nix
   ./services/networking/pdns-recursor.nix

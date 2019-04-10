@@ -1595,6 +1595,8 @@ with pkgs;
     utillinux = utillinuxMinimal;
   };
 
+  planb = callPackage ../applications/networking/planb { };
+
   sqlint = callPackage ../development/tools/sqlint { };
 
   antibody = callPackage ../shells/zsh/antibody { };

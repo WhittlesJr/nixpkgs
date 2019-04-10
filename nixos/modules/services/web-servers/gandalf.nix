@@ -4,21 +4,22 @@ with lib;
 
 let
   cfg = config.services.gandalf;
+  gitdCfg = config.services.gitDaemon;
 
   basePath = "/var/lib/gandalf";
   templatePath = "/home/git/bare-template";
   configFile = pkgs.writeText "gandalf.conf" ''
     bin-path: ${pkgs.gandalf}/bin/gandalf-ssh
     database:
-      url: 127.0.0.1:27017
+      url: ${config.services.mongodb.bind_ip}:27017
       name: gandalf
     git:
       bare:
         location: ${basePath}
         template: ${templatePath}
-    host: localhost
+    host: ${cfg.hostAddress}
     webserver:
-      port: ":8000"
+      port: "${cfg.hostAddress}:${cfg.hostPort}"
   '';
   preReceiveHook = pkgs.fetchurl {
     url = "https://raw.githubusercontent.com/tsuru/tsuru/1.6.0/misc/git-hooks/pre-receive";
@@ -29,6 +30,16 @@ in {
 
   options.services.gandalf = {
     enable = mkEnableOption "Gandalf git server";
+
+    hostPort = mkOption {
+      default = "8000";
+      description = "Host port";
+    };
+
+    hostAddress = mkOption {
+      default = "127.0.0.1";
+      description = "Host address";
+    };
   };
 
   config = mkIf (cfg.enable) {
@@ -48,7 +59,6 @@ in {
       enable = true;
       basePath = basePath;
       exportAll = true;
-      options = "--detach";
     };
 
     systemd.services.gandalf-git-hook-install = {
