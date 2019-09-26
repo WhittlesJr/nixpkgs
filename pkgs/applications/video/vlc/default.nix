@@ -1,5 +1,5 @@
 { stdenv, fetchurl, autoreconfHook
-, libarchive, perl, xorg, libdvdnav, libbluray
+, libarchive, perl, xorg, libdvdnav, libbluray, libaacs, aacskeys
 , zlib, a52dec, libmad, faad2, ffmpeg, alsaLib
 , pkgconfig, dbus, fribidi, freefont_ttf, libebml, libmatroska
 , libvorbis, libtheora, speex, lua5, libgcrypt, libgpgerror, libupnp
@@ -33,8 +33,8 @@ stdenv.mkDerivation rec {
   };
 
   # VLC uses a *ton* of libraries for various pieces of functionality, many of
-  # which are not included here for no other reason that nobody has mentioned
-  # needing them
+  # which are not included here for no other reason than that nobody has
+  # mentioned needing them
   buildInputs = [
     zlib a52dec libmad faad2 ffmpeg alsaLib libdvdnav libdvdnav.libdvdread
     libbluray dbus fribidi libvorbis libtheora speex lua5 libgcrypt libgpgerror
@@ -43,7 +43,7 @@ stdenv.mkDerivation rec {
     libkate libtiger libv4l samba liboggz libass libdvbpsi libva
     xorg.xlibsWrapper xorg.libXv xorg.libXvMC xorg.libXpm xorg.xcbutilkeysyms
     libdc1394 libraw1394 libopus libebml libmatroska libvdpau libsamplerate
-    fluidsynth wayland wayland-protocols
+    fluidsynth wayland wayland-protocols libaacs aacskeys
   ] ++ optional (!stdenv.hostPlatform.isAarch64) live555
     ++ optionals withQt5    [ qtbase qtsvg qtx11extras ]
     ++ optional jackSupport libjack2
