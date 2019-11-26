@@ -14,11 +14,14 @@ buildPythonPackage rec {
 
   propagatedBuildInputs = [ transitions websockets passlib docopt pyyaml ];
 
-  checkInputs = [ nose ];
+  # Tests try to bind to 127.0.0.1
+  doCheck = false;
 
-  checkPhase = ''
-    nosetests -e test_connect_tcp
-  '';
+  #checkInputs = [ nose ];
+
+  #checkPhase = ''
+  #  nosetests -e test_connect_tcp
+  #'';
 
   meta = with stdenv.lib; {
     homepage = https://github.com/beerfactory/hbmqtt;
