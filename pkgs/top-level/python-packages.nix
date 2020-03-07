@@ -41,7 +41,7 @@ let
         __functor = self: ff;
       }
       else ff;
-
+pip
   buildPythonPackage = makeOverridablePythonPackage ( makeOverridable (callPackage ../development/interpreters/python/mk-python-derivation.nix {
     inherit namePrefix;     # We want Python libraries to be named like e.g. "python3.6-${name}"
     inherit toPythonModule; # Libraries provide modules
@@ -1382,6 +1382,8 @@ in {
   sentinel = callPackage ../development/python-modules/sentinel { };
 
   sentry-sdk = callPackage ../development/python-modules/sentry-sdk {};
+
+  sentry-sdk_0_13_2 = callPackage ../development/python-modules/sentry-sdk { version = "0.13.2"; };
 
   sepaxml = callPackage ../development/python-modules/sepaxml { };
 
@@ -3527,6 +3529,8 @@ in {
 
   flask = callPackage ../development/python-modules/flask { };
 
+  flask_0_12 = callPackage ../development/python-modules/flask { version = "0.12.5"; };
+
   flask-admin = callPackage ../development/python-modules/flask-admin { };
 
   flask-appbuilder = callPackage ../development/python-modules/flask-appbuilder { };
@@ -3999,6 +4003,8 @@ in {
   j2cli = callPackage ../development/python-modules/j2cli { };
 
   jinja2 = callPackage ../development/python-modules/jinja2 { };
+
+  jinja2_2_8 = callPackage ../development/python-modules/jinja2 { version = "2.8.1"; };
 
   jinja2_time = callPackage ../development/python-modules/jinja2_time { };
 
@@ -4890,6 +4896,8 @@ in {
   psd-tools = callPackage ../development/python-modules/psd-tools { };
 
   psutil = callPackage ../development/python-modules/psutil { };
+
+  psutil_5_6 = callPackage ../development/python-modules/psutil { version = "5.6.7"; };
 
   psycopg2 = callPackage ../development/python-modules/psycopg2 {};
 

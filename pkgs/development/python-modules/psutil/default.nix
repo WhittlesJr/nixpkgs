@@ -3,15 +3,28 @@
 , pytest
 , mock
 , ipaddress
+, version ? "5.7.0"
 }:
+
+let
+  versionMap = {
+    "5.6.7" = {
+      sha256 = "ffad8eb2ac614518bbe3c0b8eb9dffdb3a8d2e3a7d5da51c5b974fb723a5c5aa";
+    };
+    "5.7.0" = {
+      sha256 = "03jykdi3dgf1cdal9bv4fq9zjvzj9l9bs99gi5ar81sdl5nc2pk8";
+    };
+  };
+in
+
+with versionMap.${version};
 
 buildPythonPackage rec {
   pname = "psutil";
-  version = "5.7.0";
+  inherit version;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "03jykdi3dgf1cdal9bv4fq9zjvzj9l9bs99gi5ar81sdl5nc2pk8";
+    inherit pname sha256 version;
   };
 
   # arch doesn't report frequency is the same way
