@@ -5885,6 +5885,8 @@ in {
 
   robomachine = callPackage ../development/python-modules/robomachine { };
 
+  pabot = callPackage ../development/python-modules/pabot { };
+
   robotframework = callPackage ../development/python-modules/robotframework { };
 
   robotframework-databaselibrary = callPackage ../development/python-modules/robotframework-databaselibrary { };
