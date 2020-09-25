@@ -4174,6 +4174,8 @@ in {
 
   oyaml = callPackage ../development/python-modules/oyaml { };
 
+  pabot = callPackage ../development/python-modules/pabot { };
+
   packaging = callPackage ../development/python-modules/packaging { };
 
   packet-python = callPackage ../development/python-modules/packet-python { };
