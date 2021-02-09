@@ -5,35 +5,35 @@ let
     let
       graalvmXXX-ce = stdenv.mkDerivation rec {
         pname = "graalvm${javaVersion}-ce";
-        version = "20.2.0";
+        version = "21.0.0";
         srcs = [
           (fetchurl {
-             sha256 = {  "8" = "1s64zkkrns1ykh6dwpjrqy0hs9m1bb08cf7ss7msx33h9ivir5b0";
-                        "11" = "0aaf0sjsnlckhgsh3j4lph0shahw6slf4yndqcm2swc8i1dlpdsx";
+             sha256 = {  "8" = "18q1plrpclp02rlwn3vvv2fcyspvqv2gkzn14f0b59pnladmlv1j";
+                        "11" = "1g1xjbr693rimdy2cy6jvz4vgnbnw76wa87xcmaszka206fmpnsc";
                       }.${javaVersion};
              url    = "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${version}/graalvm-ce-java${javaVersion}-linux-amd64-${version}.tar.gz";
           })
           (fetchurl {
-             sha256 = {  "8" = "1cisyyzab4pdvzavnivhy9w6dwn36ybaxw40w767m142fbi06m3b";
-                        "11" = "0p4j6mxajmb0xl41c79154pk4vb8bffgg1nmwislahqjky9jkd4j";
+             sha256 = {  "8" = "0hpq2g9hc8b7j4d8a08kq1mnl6pl7a4kwaj0a3gka3d4m6r7cscg";
+                        "11" = "0z3hb2bf0lqzw760civ3h1wvx22a75n7baxc0l2i9h5wxas002y7";
                       }.${javaVersion};
              url    = "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${version}/native-image-installable-svm-java${javaVersion}-linux-amd64-${version}.jar";
           })
           (fetchurl {
-             sha256 = {  "8" = "0rwwvk1mkfnl0b50xg7kh6015kjmsw2ra0ckrzmabl88z4bnzh2y";
-                        "11" = "0lc9as2a00j74lp7jby4p10vn5bbkiydzvzk28zfcbsp28p4wvwn";
+             sha256 = {  "8" = "122p8psgmzhqnjb2fy1lwghg0kw5qa8xkzgyjp682lwg4j8brz43";
+                        "11" = "1vdc90m6s013cbhmj58nb4vyxllbxirw0idlgv0iv9cyhx90hzgz";
                       }.${javaVersion};
              url    = "https://github.com/oracle/truffleruby/releases/download/vm-${version}/ruby-installable-svm-java${javaVersion}-linux-amd64-${version}.jar";
           })
           (fetchurl {
-             sha256 = {  "8" = "0mj8p72qgvvrwpsbk0bsqldynlz1wq07icf951wq5xdbr0whj1gz";
-                        "11" = "1lkszqn4islsza011iabayv6riym0dwnkv83pkmk06b230qjfhzb";
+             sha256 = {  "8" = "19m7n4f5jrmsfvgv903sarkcjh55l0nlnw99lvjlcafw5hqzyb91";
+                        "11" = "18ibb7l7b4hmbnvyr8j7mrs11mvlsf2j0c8rdd2s93x2114f26ba";
                       }.${javaVersion};
              url    = "https://github.com/graalvm/graalpython/releases/download/vm-${version}/python-installable-svm-java${javaVersion}-linux-amd64-${version}.jar";
           })
           (fetchurl {
-             sha256 = {  "8" = "1br7camk7y8ych43ws57096100f9kzjvqznh2flmws78ipcrrb66";
-                        "11" = "10swxspjvzh0j82lbpy38dckk69lw1pawqkhnj1hxd05ls36fwq5";
+             sha256 = {  "8" = "0dlgbg6kri89r9zbk6n0ch3g8356j1g35bwjng87c2y5y0vcw0b5";
+                        "11" = "1yby65hww6zmd2g5pjwbq5pv3iv4gfv060b8fq75fjhwrisyj5gd";
                       }.${javaVersion};
              url    = "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${version}/wasm-installable-svm-java${javaVersion}-linux-amd64-${version}.jar";
           })
