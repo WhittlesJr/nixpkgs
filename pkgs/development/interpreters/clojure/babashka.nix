@@ -3,17 +3,17 @@
 with lib;
 stdenv.mkDerivation rec {
   pname = "babashka";
-  version = "0.2.3";
+  version = "0.2.9";
 
   reflectionJson = fetchurl {
     name = "reflection.json";
     url = "https://github.com/borkdude/${pname}/releases/download/v${version}/${pname}-${version}-reflection.json";
-    sha256 = "0lbdh3v3g3j00bn99bjhjj3gk1q9ks2alpvl9bxc00xpyw86f7z8";
+    sha256 = "1c7f0z1hi0vcfz532r3fhr4c64jjqppf94idpa1jziz1dljkwk85";
   };
 
   src = fetchurl {
     url = "https://github.com/borkdude/${pname}/releases/download/v${version}/${pname}-${version}-standalone.jar";
-    sha256 = "0vh6k3dkzyk346jjzg6n4mdi65iybrmhb3js9lm73yc3ay2c5dyi";
+    sha256 = "18w1in8znajvhzc7x2v7p0vcbl3yszgn3rwzmc8qc63vr1bjmgsd";
   };
 
   dontUnpack = true;
@@ -28,10 +28,9 @@ stdenv.mkDerivation rec {
       -H:+ReportExceptionStackTraces \
       -J-Dclojure.spec.skip-macros=true \
       -J-Dclojure.compiler.direct-linking=true \
-      "-H:IncludeResources=BABASHKA_VERSION" \
-      "-H:IncludeResources=SCI_VERSION" \
+      -H:IncludeResources=BABASHKA_VERSION \
+      -H:IncludeResources=SCI_VERSION \
       -H:ReflectionConfigurationFiles=${reflectionJson} \
-      --initialize-at-run-time=java.lang.Math\$RandomNumberGeneratorHolder \
       --initialize-at-build-time \
       -H:Log=registerResource: \
       -H:EnableURLProtocols=http,https \
@@ -41,8 +40,8 @@ stdenv.mkDerivation rec {
       --no-fallback \
       --no-server \
       --report-unsupported-elements-at-runtime \
-      "--initialize-at-run-time=org.postgresql.sspi.SSPIClient" \
-      "-J-Xmx4500m"
+      --initialize-at-run-time=org.postgresql.sspi.SSPIClient \
+      -J-Xmx4500m
   '';
 
   installPhase = ''
