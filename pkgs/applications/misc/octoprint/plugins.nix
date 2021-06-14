@@ -149,6 +149,25 @@ in {
     };
   };
 
+  printoid = buildPlugin rec {
+    pname = "Printoid";
+    version = "1.0.2";
+
+    src = fetchFromGitHub {
+      owner = "anthonyst91";
+      repo = "OctoPrint-${pname}";
+      rev = version;
+      sha256 = "0pzh3f4g0xmab3hzwadndw2jym2w3c6442q8v0s6gy1w6s5b8ggp";
+    };
+
+    meta = with lib; {
+      description = "Better print time estimation for OctoPrint";
+      homepage = "https://printoid.net/";
+      license = licenses.agpl3;
+      maintainers = with maintainers; [ WhittlesJr ];
+    };
+  };
+
   printtimegenius = buildPlugin rec {
     pname = "PrintTimeGenius";
     version = "2.2.6";
