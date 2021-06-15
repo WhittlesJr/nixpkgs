@@ -249,6 +249,8 @@ in
 
   eclipse-mat = callPackage ../development/tools/eclipse-mat { };
 
+  everdo = callPackage ../misc/everdo { };
+
   glade = callPackage ../development/tools/glade { };
 
   hobbes = callPackage ../development/tools/hobbes { };
