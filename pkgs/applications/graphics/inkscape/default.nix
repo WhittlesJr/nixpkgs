@@ -49,6 +49,7 @@ let
       numpy
       lxml
       packaging
+      pyusb
       pillow
       scour
       pyserial
