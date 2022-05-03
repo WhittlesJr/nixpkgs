@@ -47,6 +47,7 @@ let
     (ps: with ps; [
       numpy
       lxml
+      pyusb
       pillow
       scour
     ]);
