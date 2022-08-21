@@ -30598,6 +30598,8 @@ with pkgs;
 
   rofi-vpn = callPackage ../applications/networking/rofi-vpn { };
 
+  seamly2d = libsForQt515.callPackage ../applications/graphics/seamly2d { };
+
   ympd = callPackage ../applications/audio/ympd { };
 
   # a somewhat more maintained fork of ympd
