@@ -33,6 +33,7 @@ python3.pkgs.buildPythonApplication rec {
     unidecode
     wand
     werkzeug
+    jsonschema
   ];
 
   patches = [
