@@ -5,75 +5,93 @@ with lib;
 let
   cfg = config.services.ankisyncd;
 
+  syncUsers = builtins.listToAttrs (
+    (builtins.map (index: let
+      user = (elemAt cfg.users (index - 1));
+    in
+      {
+        name = "SYNC_USER${toString index}";
+        value = "${user.username}:${user.password}";
+      }) (lib.range 1 ((builtins.length cfg.users))))
+  );
+
   name = "ankisyncd";
-
-  stateDir = "/var/lib/${name}";
-
-  authDbPath = "${stateDir}/auth.db";
-
-  sessionDbPath = "${stateDir}/session.db";
-
-  configFile = pkgs.writeText "ankisyncd.conf" (lib.generators.toINI {} {
-    sync_app = {
-      host = cfg.host;
-      port = cfg.port;
-      data_root = stateDir;
-      auth_db_path = authDbPath;
-      session_db_path = sessionDbPath;
-
-      base_url = "/sync/";
-      base_media_url = "/msync/";
-    };
-  });
 in
-  {
-    options.services.ankisyncd = {
-      enable = mkEnableOption (lib.mdDoc "ankisyncd");
+{
+  options.services.ankisyncd = {
+    enable = mkEnableOption (lib.mdDoc "ankisyncd");
 
-      package = mkOption {
-        type = types.package;
-        default = pkgs.ankisyncd;
-        defaultText = literalExpression "pkgs.ankisyncd";
-        description = lib.mdDoc "The package to use for the ankisyncd command.";
-      };
-
-      host = mkOption {
-        type = types.str;
-        default = "localhost";
-        description = lib.mdDoc "ankisyncd host";
-      };
-
-      port = mkOption {
-        type = types.port;
-        default = 27701;
-        description = lib.mdDoc "ankisyncd port";
-      };
-
-      openFirewall = mkOption {
-        default = false;
-        type = types.bool;
-        description = lib.mdDoc "Whether to open the firewall for the specified port.";
-      };
+    package = mkOption {
+      type = types.package;
+      default = pkgs.anki;
+      defaultText = literalExpression "pkgs.anki";
+      description = lib.mdDoc "The package to use for the anki --syncserver command.";
     };
 
-    config = mkIf cfg.enable {
-      networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ cfg.port ];
+    host = mkOption {
+      type = types.str;
+      default = "localhost";
+      description = lib.mdDoc "Sets the SYNC_HOST var for anki --syncserver";
+    };
 
-      environment.etc."ankisyncd/ankisyncd.conf".source = configFile;
+    port = mkOption {
+      type = types.port;
+      default = 27701;
+      description = lib.mdDoc "Sets the SYNC_PORT var for anki --syncserver";
+    };
 
-      systemd.services.ankisyncd = {
-        description = "ankisyncd - Anki sync server";
-        after = [ "network.target" ];
-        wantedBy = [ "multi-user.target" ];
-        path = [ cfg.package ];
-
-        serviceConfig = {
-          Type = "simple";
-          DynamicUser = true;
-          StateDirectory = name;
-          ExecStart = "${cfg.package}/bin/ankisyncd";
-          Restart = "always";
+    users = mkOption {
+      description = lib.mdDoc "A list of credentials for your users. Populates SYNC_USER{n} vars.";
+      type = types.listOf (types.submodule {
+        options = {
+          username = mkOption {
+            type = types.str;
+            description = lib.mdDoc "";
+          };
+          password = mkOption {
+            type = types.str;
+            description = lib.mdDoc "";
+          };
         };
+      });
+    };
+
+    openFirewall = mkOption {
+      default = false;
+      type = types.bool;
+      description = lib.mdDoc "Whether to open the firewall for the specified port.";
+    };
+  };
+
+  config = mkIf cfg.enable {
+    networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ cfg.port ];
+
+    users.users."${name}" = {
+      group = name;
+      isSystemUser = true;
+    };
+    users.groups."${name}" = { };
+
+    systemd.services."${name}" = {
+      description = "${name} - Anki sync server";
+      after = [ "network.target" ];
+      wantedBy = [ "multi-user.target" ];
+      path = [ cfg.package ];
+
+      environment = {
+        SYNC_HOST = cfg.host;
+        SYNC_PORT = toString cfg.port;
+        SYNC_BASE = "/var/lib/${name}";
+      } // syncUsers;
+      serviceConfig = {
+        Type = "simple";
+        User = name;
+        Group = name;
+        #DynamicUser = true;
+        StateDirectory = name;
+        ExecStart = "${cfg.package}/bin/anki --syncserver";
+        Restart = "always";
       };
     };
-  }
+  };
+}
