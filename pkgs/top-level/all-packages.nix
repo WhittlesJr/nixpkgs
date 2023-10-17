@@ -21233,6 +21233,8 @@ with pkgs;
 
   imlibsetroot = callPackage ../applications/graphics/imlibsetroot { libXinerama = xorg.libXinerama; } ;
 
+  immersed = callPackage ../desktops/immersed { } ;
+
   impy = callPackage ../development/libraries/impy { };
 
   ineffassign = callPackage ../development/tools/ineffassign { };
