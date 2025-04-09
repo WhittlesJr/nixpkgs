@@ -12260,6 +12260,19 @@ with pkgs;
 
   synergyWithoutGUI = synergy.override { withGUI = false; };
 
+  deskflow = qt6Packages.callPackage ../applications/misc/deskflow {
+    inherit (darwin.apple_sdk_11_0.frameworks)
+      ApplicationServices
+      Carbon
+      Cocoa
+      CoreServices
+      ScreenSaver
+      UserNotifications
+      ;
+  };
+
+  deskflowWithoutGUI = deskflow.override { withGUI = false; };
+
   tabbed = callPackage ../applications/window-managers/tabbed {
     # if you prefer a custom config, write the config.h in tabbed.config.h
     # and enable
