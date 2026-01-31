@@ -20,14 +20,11 @@ buildPythonApplication rec {
   src = fetchFromGitHub {
     owner = "NixOS";
     repo = "nixops";
-    rev = "08feccb14074c5434f3e483d19a7f7d9bfcdb669";
-    hash = "sha256-yWeF5apQJdChjYVSOyH6LYjJYGa1RL68LRHrSgZ9l8U=";
+    rev = "fd4b8031dbaf753545188b7c380194e47604dbac";
+    hash = "sha256-BYCCULov1/Mu5Tp4N1voQFPVWsWVyKhlQoH+I7IJnuE==";
   };
 
   postPatch = ''
-    substituteInPlace pyproject.toml --replace-fail \
-      'include = ["nix/*.nix", "nixops/py.typed" ]' \
-      'include = [ { path = "nix/*.nix", format = "wheel" }, { path = "nixops/py.typed", format = "wheel" } ]'
     substituteInPlace nixops/args.py --replace-fail "@version@" "${version}-pre-${
       lib.substring 0 7 src.rev or "dirty"
     }"
